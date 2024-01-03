@@ -2,15 +2,27 @@ import React, { useState, useEffect } from 'react';
 
 
 function Answer(props) {
-const correctNum = '3'
-    return ( 
+ const [targetNumber,setTargetNumber] = useState(null)
+ const [wrong,setWrong] = useState(null)
+
+
+ function answer(ans) {
+    props.answered(ans)
+    setTargetNumber(3)
+    setWrong('wrong')
+ }
+
+
+
+    return (  
         <>
-    <div
+    <button
        id={props.id}
-       onClick={(e) => props.answered(e.target)}
-       className={props.className}>
+       onClick={(e) => answer(e.target)}
+      className={targetNumber == props.id ? 'correct' : wrong}
+       >
    {atob(props.answerDisplay)}
-       </div>
+       </button>
         </>
      );
 }

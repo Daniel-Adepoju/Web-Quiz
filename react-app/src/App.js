@@ -2,49 +2,39 @@ import React, { Component, useEffect } from 'react';
 import { useState } from 'react';
 import Quiz from './quizComponent';
 import quizPics from './quiz.svg'
-import Alert from './alert';
 import { useFetch} from './useFetch';
+import { categoryOptions,difficultyOptions } from './options';
+import Loader from './Loader';
+
 
 
 function App () {
-   const [startGame, setStartGame] = useState(false)
-    const [value, setValue] = useState(0)
-    const [isQuestionAnswered, setIsQuestionAnswered] = useState(false)
-    const [isCorrect, setIsCorrect] = useState()
-    const {questions} = useFetch()
-    const [alert, setAlert] = useState({
-       text: 'default',
-       type: '',
-    })
-    const [active, setActive] = useState(false)
-    const [score, setScore] = useState(0)
-    const [finished,setFinished] = useState(false)
-
-    function answerQuestion(checker) {
-        setIsQuestionAnswered(true)
-        if(checker.id === '3') {
-     checker.classList.add('correct')
-    setIsCorrect(true)
-    setAlert((prev) => {
- return {...prev, text: 'Correct Answer', type:'success'}
-    })
- setScore((prev) => {
-    return prev + 1
-           })
-    }
-
-    else {
-     checker.classList.add('wrong')
-     setIsCorrect(false)
-     setAlert((prev) => {
-     return {...prev, text: 'Wrong Answer', type:'danger'}
-           })
-    }
-    setTimeout(() => {
   
-       increaseValue()
-    },500)
-    setActive(true)
+   const [category,setCategory] = useState('9')
+   const [categoryId,setCategoryId] = useState(0)
+   const [categoryLoad,setCategoryLoad] = useState(true)
+   const url = `https://opentdb.com/api.php?amount=10&category=${category}&difficulty=${'medium'}&type=multiple&encode=base64`
+   const [startGame, setStartGame] = useState(false)
+   const [value, setValue] = useState(0)
+   const [isQuestionAnswered, setIsQuestionAnswered] = useState(false)
+   const [isCorrect, setIsCorrect] = useState()
+   const [active, setActive] = useState(false)
+   const [score, setScore] = useState(0)
+   const [finished,setFinished] = useState(false)
+   const [clicked,setClicked] = useState(false)
+   const {
+    questions,setQuestions,
+    loading,setRefresh,
+    setLoading,error} = useFetch(url)
+
+    function answerQuestion(ans) {
+       setTimeout(() => {
+     increaseValue()
+      setClicked(true)
+       },400)
+       if(ans.id == 3) {
+      setScore(prev => prev + 1)
+       }
     }
 
 
@@ -64,33 +54,78 @@ return number
    }
    
 
-    const quizDisplay = questions.map((quiz, index) => {
-     return   <div key={index} className='container'>
+    const quizDisplay = questions?.map((quiz, index) => {
+     return(
+      <>
+  <div className="category">{atob(quiz.category)}</div>
+     <div key={index} className='container'>
  <Quiz 
  id={index}
  quiz = {quiz}
   {...quiz} 
   answered={answerQuestion}
-  correct={isCorrect}/>
- <button 
- onClick={increaseValue}
- className="skip btn">
-   Skip
- </button>
- </div> 
+  correct={isCorrect}
+  clicked={clicked}/>
+ </div>
+ </>)
     })
+    const quizEndDisplay = questions?.map((quiz, index) => {
+      return(
+       <>
+   <div className="endQuestion">{`${index+1}. ${atob(quiz.question)}`}</div>
+   <div className="endAnswer">{atob(quiz.correct_answer)}</div>
+   </>
+      )
+     })
 
     function refresh() {
-        window.location.reload()
+      //  setLoading(true)
+      setRefresh(prev => !prev)
+      setFinished(false)
+      setQuestions([])
+      setScore(0)
     }
 
+    function start() {
+       setFinished(false)
+       setScore(0)
+       setStartGame(true)
+    }
+    useEffect(() => {
+    setTimeout(() => {
+   setCategoryLoad(false)
+    },5000)
+    },[])
+     
+   function selectCategory(id,index) {
+      setCategory(id)
+      setCategoryId(index)
+      setRefresh(prev => !prev)
+      setQuestions([])
+      setStartGame(true)
+   }
+
+ const categoryMap = categoryOptions?.map((item,index) => {
+ return  <div key={index} className={`item ${index === categoryId && 'active'}`}  id={item.id} onClick={(e) => selectCategory(e.target.id,index)}> {item.val}</div>
+ })
     return ( 
-  <> 
+  <>
+  
   <div> {!startGame ?
   <div className='container'> 
-  <img src={quizPics} />
-  <button onClick={() => setStartGame(true)}className='start'>Start</button>
+
+  <div className='options'>
+  <img src={quizPics}  />
+  
+   <span>
+  <div className="title"> Select a Category </div>
+ {!categoryLoad ? categoryMap : <Loader />}
+  </span>
   </div>
+  
+  <button onClick={() => start()}className='start'>Start</button>
+  </div>
+  
  : <div className='cover'> {
     finished ? <div className='finished'>
         <span>
@@ -99,26 +134,25 @@ return number
       <span>
         You Got {score} out of {questions.length} questions correctly
       </span>
+      <div className="corrections">
+        <div className="title">Correct Answers</div>
+        {quizEndDisplay}
+      </div>
       <button  onClick={refresh} className="btn">
         Refresh
       </button>
         </div> :
+   
    <div>
-    <div className="header">
- {active && <Alert 
-setter={setActive} 
-{...alert} 
-correct={isCorrect} 
-setCorrect={setIsCorrect}/>}
-<div className="score">{score}/{questions.length}</div>
-   </div>
-     {quizDisplay[value]}
+     {error && <h2>Error</h2>}
+     {!loading && questions ? quizDisplay[value] : <Loader />}
      </div>
 }
 </div>
  } </div>
 </>
     );
+
 }
 
 export default App ;
